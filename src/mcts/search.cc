@@ -61,7 +61,7 @@ std::string SearchLimits::DebugString() const {
   return ss.str();
 }
 
-Search::Search(const NodeTree& tree, Network* network,
+Search::Search(const NodeTree& tree, Network* network, Network* network2,
                BestMoveInfo::Callback best_move_callback,
                ThinkingInfo::Callback info_callback, const SearchLimits& limits,
                const OptionsDict& options, NNCache* cache,
@@ -72,6 +72,7 @@ Search::Search(const NodeTree& tree, Network* network,
       syzygy_tb_(syzygy_tb),
       played_history_(tree.GetPositionHistory()),
       network_(network),
+      network2_(network2),
       limits_(limits),
       start_time_(std::chrono::steady_clock::now()),
       initial_visits_(root_node_->GetN()),
@@ -658,6 +659,7 @@ Search::~Search() {
 void SearchWorker::ExecuteOneIteration() {
   // 1. Initialize internal structures.
   InitializeIteration(search_->network_->NewComputation());
+  InitializeIteration(search_->network2_->NewComputation());
 
   // 2. Gather minibatch.
   GatherMinibatch();
