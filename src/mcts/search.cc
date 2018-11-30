@@ -658,8 +658,7 @@ Search::~Search() {
 
 void SearchWorker::ExecuteOneIteration() {
   // 1. Initialize internal structures.
-  InitializeIteration(search_->network_->NewComputation());
-  InitializeIteration(search_->network2_->NewComputation());
+  InitializeIteration(search_->network_->NewComputation(), search_->network2_->NewComputation());
 
   // 2. Gather minibatch.
   GatherMinibatch();
@@ -683,8 +682,10 @@ void SearchWorker::ExecuteOneIteration() {
 // 1. Initialize internal structures.
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void SearchWorker::InitializeIteration(
-    std::unique_ptr<NetworkComputation> computation) {
+    std::unique_ptr<NetworkComputation> computation, std::unique_ptr<NetworkComputation> computation2) {
   computation_ = std::make_unique<CachingComputation>(std::move(computation),
+                                                      search_->cache_);
+  computation2_ = std::make_unique<CachingComputation>(std::move(computation2),
                                                       search_->cache_);
   minibatch_.clear();
 
