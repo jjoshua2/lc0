@@ -439,7 +439,7 @@ if not get_option('pext')
   add_project_arguments('-DNO_PEXT', language : 'cpp')
 endif
 
-executable('lc0', 'src/main.cc',
+executable('rescorer', 'src/main.cc',
   files, include_directories: includes, dependencies: deps, install: true)
 
 

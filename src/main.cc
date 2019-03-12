@@ -46,8 +46,13 @@ int main(int argc, const char** argv) {
   CommandLine::RegisterMode("uci", "(default) Act as UCI engine");
   CommandLine::RegisterMode("selfplay", "Play games with itself");
   CommandLine::RegisterMode("benchmark", "Quick benchmark");
+  CommandLine::RegisterMode("rescore",
+                            "Update data scores with tablebase support");
 
-  if (CommandLine::ConsumeCommand("selfplay")) {
+  if (CommandLine::ConsumeCommand("rescore")) {
+    RescoreLoop loop;
+    loop.RunLoop();
+  } else if (CommandLine::ConsumeCommand("selfplay")) {
     // Selfplay mode.
     SelfPlayLoop loop;
     loop.RunLoop();
