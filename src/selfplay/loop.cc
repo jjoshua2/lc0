@@ -49,6 +49,10 @@ const OptionId kTempId{"temperature", "",
 const OptionId kDistributionOffsetId{
     "dist_offset", "",
     "Additional offset to apply to policy target before temperature."};
+const OptionId kMinDTZBoostId{
+    "dtz_policy_boost", "",
+    "Additional offset to apply to policy target before temperature for moves "
+    "that are best dtz option."};
 
 std::atomic<int> games(0);
 std::atomic<int> positions(0);
@@ -58,9 +62,13 @@ std::atomic<int> rescored2(0);
 std::atomic<int> rescored3(0);
 std::atomic<int> orig_counts[3];
 std::atomic<int> fixed_counts[3];
+std::atomic<int> policy_bump(0);
+std::atomic<int> policy_nobump_total_hist[11];
+std::atomic<int> policy_bump_total_hist[11];
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
-                 std::string outputDir, float distTemp, float distOffset) {
+                 std::string outputDir, float distTemp, float distOffset,
+                 float dtzBoost) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -227,19 +235,59 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         }
       }
     }
-    if (distTemp != 1.0f || distOffset != 0.0f) {
+    if (distTemp != 1.0f || distOffset != 0.0f || dtzBoost != 0.0f) {
+      board.SetFromFen(ChessBoard::kStartposFen, &rule50ply, &gameply);
+      history.Reset(board, rule50ply, gameply);
+      int move_index = 0;
       for (auto& chunk : fileContents) {
+        const auto& board = history.Last().GetBoard();
+        std::vector<bool> boost_probs(1858, false);
+        int boost_count = 0;
+
+        if (dtzBoost != 0.0f && board.castlings().no_legal_castle() &&
+            (board.ours() | board.theirs()).count() <=
+                tablebase->max_cardinality()) {
+          MoveList to_boost;
+          tablebase->root_probe(history.Last(), true, true, &to_boost);
+          for (auto& move : to_boost) {
+            boost_probs[move.as_nn_index()] = true;
+          }
+          boost_count = to_boost.size();
+        }
         float sum = 0.0;
+        int prob_index = 0;
+        float preboost_sum = 0.0f;
         for (auto& prob : chunk.probabilities) {
-          if (prob < 0) continue;
-          prob = std::max(0.0f, prob + distOffset);
+          float offset =
+              distOffset + (boost_probs[prob_index] ? (dtzBoost / boost_count): 0.0f);
+          if (dtzBoost != 0.0f && boost_probs[prob_index]) {
+            preboost_sum += prob;
+            if (prob < 0 || std::isnan(prob))
+              std::cerr << "Bump for move that is illegal????" << std::endl;
+            policy_bump++;
+          }
+          prob_index++;
+          if (prob < 0 || std::isnan(prob)) continue;
+          prob = std::max(0.0f, prob + offset);
           prob = std::pow(prob, 1.0f / distTemp);
           sum += prob;
         }
+        prob_index = 0;
+        float boost_sum = 0.0f;
         for (auto& prob : chunk.probabilities) {
-          if (prob < 0) continue;
+          if (dtzBoost != 0.0f && boost_probs[prob_index]) {
+            boost_sum += prob / sum;
+          }
+          prob_index++;
+          if (prob < 0 || std::isnan(prob)) continue;
           prob /= sum;
         }
+        if (boost_count > 0) {
+          policy_nobump_total_hist[(int)(preboost_sum * 10)]++;
+          policy_bump_total_hist[(int)(boost_sum * 10)]++;
+        }
+        history.Append(moves[move_index]);
+        move_index++;
       }
     }
 
@@ -316,10 +364,11 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
 
 void ProcessFiles(const std::vector<std::string>& files,
                   SyzygyTablebase* tablebase, std::string outputDir,
-                  float distTemp, float distOffset, int offset, int mod) {
+                  float distTemp, float distOffset, float dtzBoost, int offset,
+                  int mod) {
   std::cerr << "Thread: " << offset << " starting" << std::endl;
   for (int i = offset; i < files.size(); i += mod) {
-    ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset);
+    ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost);
   }
 }
 }  // namespace
@@ -335,6 +384,8 @@ void RescoreLoop::RunLoop() {
   fixed_counts[0] = 0;
   fixed_counts[1] = 0;
   fixed_counts[2] = 0;
+  for (int i = 0; i < 11; i++) policy_bump_total_hist[i] = 0;
+  for (int i = 0; i < 11; i++) policy_nobump_total_hist[i] = 0;
   options_.Add<StringOption>(kSyzygyTablebaseId);
   options_.Add<StringOption>(kInputDirId);
   options_.Add<StringOption>(kOutputDirId);
@@ -343,6 +394,7 @@ void RescoreLoop::RunLoop() {
   // Positive dist offset requires knowing the legal move set, so not supported
   // for now.
   options_.Add<FloatOption>(kDistributionOffsetId, -0.999, 0) = 0;
+  options_.Add<FloatOption>(kMinDTZBoostId, 0, 1) = 0;
   SelfPlayTournament::PopulateOptions(&options_);
 
   if (!options_.ProcessAllFlags()) return;
@@ -363,6 +415,8 @@ void RescoreLoop::RunLoop() {
   for (int i = 0; i < files.size(); i++) {
     files[i] = inputDir + "/" + files[i];
   }
+  float dtz_boost =
+      options_.GetOptionsDict().Get<float>(kMinDTZBoostId.GetId());
   int threads = options_.GetOptionsDict().Get<int>(kThreadsId.GetId());
   if (threads > 1) {
     std::vector<std::thread> threads_;
@@ -370,13 +424,14 @@ void RescoreLoop::RunLoop() {
     while (threads_.size() < threads) {
       int offset_val = offset;
       offset++;
-      threads_.emplace_back([this, offset_val, files, &tablebase, threads]() {
+      threads_.emplace_back([this, offset_val, files, &tablebase, threads,
+                             dtz_boost]() {
         ProcessFiles(
             files, &tablebase,
             options_.GetOptionsDict().Get<std::string>(kOutputDirId.GetId()),
             options_.GetOptionsDict().Get<float>(kTempId.GetId()),
             options_.GetOptionsDict().Get<float>(kDistributionOffsetId.GetId()),
-            offset_val, threads);
+            dtz_boost, offset_val, threads);
       });
     }
     for (int i = 0; i < threads_.size(); i++) {
@@ -388,8 +443,8 @@ void RescoreLoop::RunLoop() {
         files, &tablebase,
         options_.GetOptionsDict().Get<std::string>(kOutputDirId.GetId()),
         options_.GetOptionsDict().Get<float>(kTempId.GetId()),
-        options_.GetOptionsDict().Get<float>(kDistributionOffsetId.GetId()), 0,
-        1);
+        options_.GetOptionsDict().Get<float>(kDistributionOffsetId.GetId()),
+        dtz_boost, 0, 1);
   }
   std::cout << "Games processed: " << games << std::endl;
   std::cout << "Positions processed: " << positions << std::endl;
@@ -398,6 +453,23 @@ void RescoreLoop::RunLoop() {
   std::cout << "Secondary rescores performed: " << rescored2 << std::endl;
   std::cout << "Secondary rescores performed used dtz: " << rescored3
             << std::endl;
+  std::cout << "Number of policy values boosted by dtz " << policy_bump
+            << std::endl;
+  std::cout << "Orig policy_sum dist of boost candidate:";
+  std::cout << std::endl;
+  int event_sum = 0;
+  for (int i = 0; i < 11; i++) event_sum += policy_bump_total_hist[i];
+  for (int i = 0; i < 11; i++) {
+    std::cout << " " << std::setprecision(4) << ((float)policy_nobump_total_hist[i] / (float)event_sum);
+  }
+  std::cout << std::endl;
+  std::cout << "Boosted policy_sum dist of boost candidate:";
+  std::cout << std::endl;
+  for (int i = 0; i < 11; i++) {
+    std::cout << " " << std::setprecision(4)
+              << ((float)policy_bump_total_hist[i] / (float)event_sum);
+  }
+  std::cout << std::endl;
   std::cout << "Original L: " << orig_counts[0] << " D: " << orig_counts[1]
             << " W: " << orig_counts[2] << std::endl;
   std::cout << "After L: " << fixed_counts[0] << " D: " << fixed_counts[1]
@@ -412,8 +484,9 @@ SelfPlayLoop::~SelfPlayLoop() {
 }
 
 void SelfPlayLoop::RunLoop() {
-  options_.Add<BoolOption>(kInteractiveId) = false;
   SelfPlayTournament::PopulateOptions(&options_);
+
+  options_.Add<BoolOption>(kInteractiveId) = false;
 
   if (!options_.ProcessAllFlags()) return;
   if (options_.GetOptionsDict().Get<bool>(kInteractiveId.GetId())) {
@@ -450,6 +523,11 @@ void SelfPlayLoop::CmdStart() {
       std::bind(&SelfPlayLoop::SendTournament, this, std::placeholders::_1));
   thread_ =
       std::make_unique<std::thread>([this]() { tournament_->RunBlocking(); });
+}
+
+void SelfPlayLoop::CmdStop() {
+  tournament_->Stop();
+  tournament_->Wait();
 }
 
 void SelfPlayLoop::SendGameInfo(const GameInfo& info) {
@@ -491,15 +569,51 @@ void SelfPlayLoop::CmdSetOption(const std::string& name,
 }
 
 void SelfPlayLoop::SendTournament(const TournamentInfo& info) {
-  std::string res = "tournamentstatus";
-  if (info.finished) res += " final";
-  res += " win " + std::to_string(info.results[0][0]) + " " +
-         std::to_string(info.results[0][1]);
-  res += " lose " + std::to_string(info.results[2][0]) + " " +
-         std::to_string(info.results[2][1]);
-  res += " draw " + std::to_string(info.results[1][0]) + " " +
-         std::to_string(info.results[1][1]);
-  SendResponse(res);
+  const int winp1 = info.results[0][0] + info.results[0][1];
+  const int losep1 = info.results[2][0] + info.results[2][1];
+  const int draws = info.results[1][0] + info.results[1][1];
+
+  // Initialize variables.
+  float percentage = -1;
+  optional<float> elo;
+  optional<float> los;
+
+  // Only caculate percentage if any games at all (avoid divide by 0).
+  if ((winp1 + losep1 + draws) > 0) {
+    percentage =
+        (static_cast<float>(draws) / 2 + winp1) / (winp1 + losep1 + draws);
+  }
+  // Calculate elo and los if percentage strictly between 0 and 1 (avoids divide
+  // by 0 or overflow).
+  if ((percentage < 1) && (percentage > 0))
+    elo = -400 * log(1 / percentage - 1) / log(10);
+  if ((winp1 + losep1) > 0) {
+    los = .5f +
+          .5f * std::erf((winp1 - losep1) / std::sqrt(2.0 * (winp1 + losep1)));
+  }
+  std::ostringstream oss;
+  oss << "tournamentstatus";
+  if (info.finished) oss << " final";
+  oss << " P1: +" << winp1 << " -" << losep1 << " =" << draws;
+
+  if (percentage > 0) {
+    oss << " Win: " << std::fixed << std::setw(5) << std::setprecision(2)
+        << (percentage * 100.0f) << "%";
+  }
+  if (elo) {
+    oss << " Elo: " << std::fixed << std::setw(5) << std::setprecision(2)
+        << (elo.value_or(0.0f));
+  }
+  if (los) {
+    oss << " LOS: " << std::fixed << std::setw(5) << std::setprecision(2)
+        << (los.value_or(0.0f) * 100.0f) << "%";
+  }
+
+  oss << " P1-W: +" << info.results[0][0] << " -" << info.results[2][0] << " ="
+      << info.results[1][0];
+  oss << " P1-B: +" << info.results[0][1] << " -" << info.results[2][1] << " ="
+      << info.results[1][1];
+  SendResponse(oss.str());
 }
 
 }  // namespace lczero
