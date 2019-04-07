@@ -373,7 +373,6 @@ void ProcessFiles(const std::vector<std::string>& files,
       ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost);
     } catch (...) {
       std::cout << "Caught error on: " << files[i] << std::endl;
-      return;
     }
   }
 }
