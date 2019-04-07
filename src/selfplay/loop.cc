@@ -77,13 +77,8 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     TrainingDataWriter writer(outputDir + "/" + fileName);
     std::vector<V4TrainingData> fileContents;
     V4TrainingData data;
-    try {
-      while (reader.ReadChunk(&data)) {
-        fileContents.push_back(data);
-      }
-    } catch (...) {
-      std::cout << "Caught error on: " << file << std::endl;
-      return;
+    while (reader.ReadChunk(&data)) {
+      fileContents.push_back(data);
     }
     MoveList moves;
     for (int i = 1; i < fileContents.size(); i++) {
@@ -374,7 +369,12 @@ void ProcessFiles(const std::vector<std::string>& files,
                   int mod) {
   std::cerr << "Thread: " << offset << " starting" << std::endl;
   for (int i = offset; i < files.size(); i += mod) {
-    ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost);
+    try {
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost);
+    } catch (...) {
+      std::cout << "Caught error on: " << files[i] << std::endl;
+      return;
+    }
   }
 }
 }  // namespace
