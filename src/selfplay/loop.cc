@@ -31,6 +31,7 @@
 #include "selfplay/tournament.h"
 #include "utils/configfile.h"
 #include "utils/filesystem.h"
+#include <exception>
 
 namespace lczero {
 
@@ -76,8 +77,12 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     TrainingDataWriter writer(outputDir + "/" + fileName);
     std::vector<V4TrainingData> fileContents;
     V4TrainingData data;
-    while (reader.ReadChunk(&data)) {
-      fileContents.push_back(data);
+    try {
+      while (reader.ReadChunk(&data)) {
+        fileContents.push_back(data);
+      }
+    } catch (...) {
+      return;
     }
     MoveList moves;
     for (int i = 1; i < fileContents.size(); i++) {
