@@ -82,6 +82,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         fileContents.push_back(data);
       }
     } catch (...) {
+      std::cout << "Caught error on: " << file << std::endl;
       return;
     }
     MoveList moves;
