@@ -381,6 +381,7 @@ void ProcessFiles(const std::vector<std::string>& files,
     } catch (...) {
       std::cout << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
+      std::cout << "Dest is: " << std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() << std::endl;
       perror("rename failed");
     }
   }
