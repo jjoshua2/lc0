@@ -81,6 +81,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       fileContents.push_back(data);
     }
     MoveList moves;
+    int max_i = fileContents.size();
     for (int i = 1; i < fileContents.size(); i++) {
       moves.push_back(
           DecodeMoveFromInput(PlanesFromTrainingData(fileContents[i])));
@@ -105,11 +106,8 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       const auto& board = history.Last().GetBoard();
       if (board.ours() | board.theirs()).count() <= 5 {
         filecontents.resize(i);
-        for (auto chunk : fileContents) {
-          writer.WriteChunk(chunk);
-        }
-        remove(file.c_str());
-        return;
+        max_i = i;
+        break;
       }
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
@@ -157,7 +155,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     }
     board.SetFromFen(ChessBoard::kStartposFen, &rule50ply, &gameply);
     history.Reset(board, rule50ply, gameply);
-    for (int i = 0; i < moves.size(); i++) {
+    for (int i = 0; i < max_i; i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
       if (board.castlings().no_legal_castle() &&
@@ -309,7 +307,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     // for 3 piece no-pawn positions only.
     board.SetFromFen(ChessBoard::kStartposFen, &rule50ply, &gameply);
     history.Reset(board, rule50ply, gameply);
-    for (int i = 0; i < moves.size(); i++) {
+    for (int i = 0; i < max_i; i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
       if (board.castlings().no_legal_castle() &&
