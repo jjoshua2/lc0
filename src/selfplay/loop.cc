@@ -103,6 +103,14 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     for (int i = 0; i < moves.size(); i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
+      if (board.ours() | board.theirs()).count() <= 5 {
+        filecontents.resize(i);
+        for (auto chunk : fileContents) {
+          writer.WriteChunk(chunk);
+        }
+        remove(file.c_str());
+        return
+      }
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
           (board.ours() | board.theirs()).count() <=
