@@ -104,7 +104,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     for (int i = 0; i < moves.size(); i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
-      if (board.ours() | board.theirs()).count() <= 5) {
+      if ((board.ours() | board.theirs()).count() <= 5) {
         filecontents.resize(i);
         max_i = i;
         break;
