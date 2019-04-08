@@ -109,7 +109,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
           writer.WriteChunk(chunk);
         }
         remove(file.c_str());
-        return
+        return;
       }
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
