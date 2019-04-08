@@ -379,7 +379,7 @@ void ProcessFiles(const std::vector<std::string>& files,
       ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost);
     } catch (...) {
       std::cout << "Caught error on: " << files[i] << std::endl;
-      rename( files[i].c_str(), std::string(std::string("../") + files[i]).c_str() );
+      rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
     }
   }
 }
