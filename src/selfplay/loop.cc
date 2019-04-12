@@ -82,7 +82,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       fileContents.push_back(data);
     }
     MoveList moves;
-    int max_i = fileContents.size();
+    
     for (int i = 1; i < fileContents.size(); i++) {
       moves.push_back(
           DecodeMoveFromInput(PlanesFromTrainingData(fileContents[i])));
@@ -91,6 +91,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       // before.
       moves.back().Mirror();
     }
+    int max_i = moves.size();
     games += 1;
     positions += fileContents.size();
     PositionHistory history;
