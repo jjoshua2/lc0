@@ -111,6 +111,9 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         max_i = i;
         break;
       }
+      if ((board.ours() | board.theirs()).count() == 8) {
+        std::cout << board.PrintFEN() << std::endl;
+      }
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
           (board.ours() | board.theirs()).count() <=
