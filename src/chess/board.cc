@@ -1147,7 +1147,7 @@ string ChessBoard::PrintFEN(int capture_halfmoves, int fullmoves) const {
 	result += flipped() ? " b" : " w"; // who to move
 	result += " " + castlings_.as_string();
 	result += " " + enpassant.empty() ? " -" : enpassant;		
-	result += " " + capture_halfmoves + " " + fullmoves;// should be number of capture_halfmoves and fullmoves;
+	result += " " + std::to_string(capture_halfmoves) + " " + std::to_string(fullmoves);// should be number of capture_halfmoves and fullmoves;
 
 	return result;
 }
