@@ -146,7 +146,7 @@ class ChessBoard {
   };
 
   std::string DebugString() const;
-  std::string PrintFEN() const;
+  std::string PrintFEN(int capture_halfmoves, int fullmoves) const;
   BitBoard ours() const { return our_pieces_; }
   BitBoard theirs() const { return their_pieces_; }
   BitBoard pawns() const;
