@@ -105,7 +105,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     int last_rescore = -1;
     orig_counts[fileContents[0].result + 1]++;
     fixed_counts[fileContents[0].result + 1]++;
-    ofstream myfile;
+    std::ofstream myfile;
     myfile.open(std::to_string(offset_val) + ".txt");
     for (int i = 0; i < moves.size(); i++) {
       history.Append(moves[i]);
