@@ -404,7 +404,8 @@ void ProcessFiles(const std::vector<std::string>& files,
       }
     }
   }
-  myfile.close();
+  draws.close();
+  wins.close();
 }
 }  // namespace
 
