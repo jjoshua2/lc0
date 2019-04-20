@@ -72,7 +72,7 @@ std::atomic<int> policy_bump_total_hist[11];
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
-                 float dtzBoost) {
+                 float dtzBoost, int offset_val) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -84,6 +84,8 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       fileContents.push_back(data);
     }
     MoveList moves;
+    std::ofstream myfile;
+    myfile.open(std::to_string(offset_val) + ".txt");
     
     for (int i = 1; i < fileContents.size(); i++) {
       moves.push_back(
@@ -105,8 +107,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     int last_rescore = -1;
     orig_counts[fileContents[0].result + 1]++;
     fixed_counts[fileContents[0].result + 1]++;
-    std::ofstream myfile;
-    myfile.open(std::to_string(offset_val) + ".txt");
+    
     for (int i = 0; i < moves.size(); i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
@@ -386,7 +387,7 @@ void ProcessFiles(const std::vector<std::string>& files,
   std::cout << "Thread: " << offset << " starting" << std::endl;
   for (int i = offset; i < files.size(); i += mod) {
     try {
-      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost);
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, offset);
     } catch (...) {
       std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
