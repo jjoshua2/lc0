@@ -105,6 +105,8 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     int last_rescore = -1;
     orig_counts[fileContents[0].result + 1]++;
     fixed_counts[fileContents[0].result + 1]++;
+    ofstream myfile;
+    myfile.open(std::to_string(offset_val) + ".txt");
     for (int i = 0; i < moves.size(); i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
@@ -113,8 +115,8 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         max_i = i;
         break;
       }
-      if ((board.ours() | board.theirs()).count() == 8) {
-        std::cout << board.PrintFEN(history.Last().GetNoCaptureNoPawnPly(), (i/2) + 1) << std::endl;
+      if ((board.ours() | board.theirs()).count() == 8) {        
+        myfile << fileContents[i].result << board.PrintFEN(history.Last().GetNoCaptureNoPawnPly(), (i/2) + 1) << std::endl;
       }
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
@@ -374,6 +376,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     }
   }
   remove(file.c_str());
+  myfile.close();
 }
 
 void ProcessFiles(const std::vector<std::string>& files,
