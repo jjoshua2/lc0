@@ -114,8 +114,10 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         max_i = i;
         break;
       }
-      if ((board.ours() | board.theirs()).count() == 8) {        
-        myfile << std::to_string(fileContents[i].result) + "," + history.Last().GetFen() << std::endl;
+      if ((board.ours() | board.theirs()).count() == 8) {
+        Position pos = history.Last(); 
+        std::string target_fen = pos.GetFen();
+        myfile << std::to_string(fileContents[i].result) + "," + target_fen << std::endl;
       }
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
