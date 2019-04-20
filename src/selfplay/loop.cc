@@ -33,6 +33,8 @@
 #include "utils/filesystem.h"
 #include <exception>
 #include <stdio.h>
+#include <iostream>
+#include <fstream>
 
 namespace lczero {
 
@@ -378,15 +380,17 @@ void ProcessFiles(const std::vector<std::string>& files,
                   SyzygyTablebase* tablebase, std::string outputDir,
                   float distTemp, float distOffset, float dtzBoost, int offset,
                   int mod) {
-  std::cerr << "Thread: " << offset << " starting" << std::endl;
+  std::cout << "Thread: " << offset << " starting" << std::endl;
   for (int i = offset; i < files.size(); i += mod) {
     try {
       ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost);
     } catch (...) {
-      std::cout << "Caught error on: " << files[i] << std::endl;
+      std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
-      std::cout << "Dest is: " << std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() << std::endl;
-      perror("rename failed");
+      if (error) {
+        std::cerr << "Dest is: " << std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() << std::endl;
+        perror("rename failed");
+      }
     }
   }
 }
