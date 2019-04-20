@@ -72,7 +72,7 @@ std::atomic<int> policy_bump_total_hist[11];
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
-                 float dtzBoost, std::ofstream& myfile) {
+                 float dtzBoost, std::ofstream& draws, std::ofstream& wins) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -117,7 +117,11 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       if ((board.ours() | board.theirs()).count() == 8) {
         Position pos = history.Last(); 
         std::string target_fen = pos.GetFen();
-        myfile << std::to_string(fileContents[i].result) + "," + target_fen << std::endl;
+        if (fileContents[i].result = 0) {
+          draws << target_fen << std::endl;
+        } else {
+          wins << target_fen << std::endl;
+        }
       }
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
@@ -384,11 +388,13 @@ void ProcessFiles(const std::vector<std::string>& files,
                   float distTemp, float distOffset, float dtzBoost, int offset,
                   int mod) {
   std::cout << "Thread: " << offset << " starting" << std::endl;
-  std::ofstream myfile;
-  myfile.open(outputDir + "." + std::to_string(offset) + ".txt");
+  std::ofstream draws;
+  std::ofstream wins;
+  draws.open(outputDir + "." + std::to_string(offset) + ".draws.txt");
+  wins.open(outputDir + "." + std::to_string(offset) + ".wins.txt");
   for (int i = offset; i < files.size(); i += mod) {
     try {
-      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, myfile);      
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins);      
     } catch (...) {
       std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
