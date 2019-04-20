@@ -33,6 +33,8 @@
 #include "utils/filesystem.h"
 #include <exception>
 #include <stdio.h>
+#include <iostream>
+#include <fstream>
 
 namespace lczero {
 
@@ -70,7 +72,7 @@ std::atomic<int> policy_bump_total_hist[11];
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
-                 float dtzBoost) {
+                 float dtzBoost, std::ofstream& myfile) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -82,7 +84,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       fileContents.push_back(data);
     }
     MoveList moves;
-    
+        
     for (int i = 1; i < fileContents.size(); i++) {
       moves.push_back(
           DecodeMoveFromInput(PlanesFromTrainingData(fileContents[i])));
@@ -103,6 +105,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     int last_rescore = -1;
     orig_counts[fileContents[0].result + 1]++;
     fixed_counts[fileContents[0].result + 1]++;
+    
     for (int i = 0; i < moves.size(); i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
@@ -110,6 +113,9 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         fileContents.resize(i);
         max_i = i;
         break;
+      }
+      if ((board.ours() | board.theirs()).count() == 8) {        
+        myfile << std::to_string(fileContents[i].result) + "," + board.PrintFEN(history.Last().GetNoCaptureNoPawnPly(), (i/2) + 1) << std::endl;
       }
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
@@ -375,17 +381,22 @@ void ProcessFiles(const std::vector<std::string>& files,
                   SyzygyTablebase* tablebase, std::string outputDir,
                   float distTemp, float distOffset, float dtzBoost, int offset,
                   int mod) {
-  std::cerr << "Thread: " << offset << " starting" << std::endl;
+  std::cout << "Thread: " << offset << " starting" << std::endl;
+  std::ofstream myfile;
+  myfile.open(std::to_string(offset) + ".txt");
   for (int i = offset; i < files.size(); i += mod) {
     try {
-      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost);
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, myfile);      
     } catch (...) {
-      std::cout << "Caught error on: " << files[i] << std::endl;
+      std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
-      std::cout << "Dest is: " << std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() << std::endl;
-      perror("rename failed");
+      if (error) {
+        std::cerr << "Dest is: " << std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() << std::endl;
+        perror("rename failed");
+      }
     }
   }
+  myfile.close();
 }
 }  // namespace
 

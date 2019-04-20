@@ -1085,7 +1085,7 @@ string ChessBoard::DebugString() const {
 
 // PrintFen outputs a FEN notation of the board. 
 // based on https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation#Examples
-string ChessBoard::PrintFEN() const {
+string ChessBoard::PrintFEN(int capture_halfmoves, int fullmoves) const {
 	string result;
 	string enpassant;
 	int emptycounter = 0;
@@ -1147,7 +1147,7 @@ string ChessBoard::PrintFEN() const {
 	result += flipped() ? " b" : " w"; // who to move
 	result += " " + castlings_.as_string();
 	result += " " + enpassant.empty() ? " -" : enpassant;		
-	result += " 1 1";// should be number of capture_halfmoves and fullmoves;
+	result += " " + std::to_string(capture_halfmoves) + " " + std::to_string(fullmoves);// should be number of capture_halfmoves and fullmoves;
 
 	return result;
 }
