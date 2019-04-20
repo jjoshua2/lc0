@@ -385,7 +385,7 @@ void ProcessFiles(const std::vector<std::string>& files,
                   int mod) {
   std::cout << "Thread: " << offset << " starting" << std::endl;
   std::ofstream myfile;
-  myfile.open(std::to_string(offset) + ".txt");
+  myfile.open(outputDir + "." + std::to_string(offset) + ".txt");
   for (int i = offset; i < files.size(); i += mod) {
     try {
       ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, myfile);      
