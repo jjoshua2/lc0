@@ -382,12 +382,11 @@ void ProcessFiles(const std::vector<std::string>& files,
                   float distTemp, float distOffset, float dtzBoost, int offset,
                   int mod) {
   std::cout << "Thread: " << offset << " starting" << std::endl;
+  std::ofstream myfile;
+  myfile.open(std::to_string(offset) + ".txt");
   for (int i = offset; i < files.size(); i += mod) {
     try {
-      std::ofstream myfile;
-      myfile.open(std::to_string(offset_val) + ".txt");
-      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, myfile);
-      myfile.close();
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, myfile);      
     } catch (...) {
       std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
@@ -397,6 +396,7 @@ void ProcessFiles(const std::vector<std::string>& files,
       }
     }
   }
+  myfile.close();
 }
 }  // namespace
 
