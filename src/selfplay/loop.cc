@@ -72,7 +72,7 @@ std::atomic<int> policy_bump_total_hist[11];
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
-                 float dtzBoost, std::ofstream& draws, std::ofstream& wins) {
+                 float dtzBoost, std::ofstream& draws, std::ofstream& wins, std::ofstream& losses) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -119,8 +119,10 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         std::string target_fen = pos.GetFen();
         if (fileContents[i].result = 0) {
           draws << target_fen << std::endl;
-        } else {
+        } else if (fileContents[i].result = 1) {
           wins << target_fen << std::endl;
+        } else {
+          losses << target_fen << std::endl;
         }
       }
       if (board.castlings().no_legal_castle() &&
@@ -390,11 +392,13 @@ void ProcessFiles(const std::vector<std::string>& files,
   std::cout << "Thread: " << offset << " starting" << std::endl;
   std::ofstream draws;
   std::ofstream wins;
+  std::ofstream losses;
   draws.open(outputDir + "." + std::to_string(offset) + ".draws.txt");
   wins.open(outputDir + "." + std::to_string(offset) + ".wins.txt");
+  losses.open(outputDir + "." + std::to_string(offset) + ".losses.txt");
   for (int i = offset; i < files.size(); i += mod) {
     try {
-      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins);      
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins, losses);      
     } catch (...) {
       std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
@@ -406,6 +410,7 @@ void ProcessFiles(const std::vector<std::string>& files,
   }
   draws.close();
   wins.close();
+  losses.close();
 }
 }  // namespace
 
