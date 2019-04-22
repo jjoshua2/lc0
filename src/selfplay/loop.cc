@@ -117,9 +117,9 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       if ((board.ours() | board.theirs()).count() == 8) {
         Position pos = history.Last(); 
         std::string target_fen = pos.GetFen();
-        if (fileContents[i].result = 0) {
+        if (fileContents[i].result == 0) {
           draws << target_fen << std::endl;
-        } else if (fileContents[i].result = 1) {
+        } else if (fileContents[i].result == 1) {
           wins << target_fen << std::endl;
         } else {
           losses << target_fen << std::endl;
