@@ -121,7 +121,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         std::string target_fen = pos.GetFen();
         auto score = fensMap.find(target_fen);
         if (score != fensMap.end()) {
-          fileContents[i].result = (int8_t)score;
+          fileContents[i].result = score->second;
         }
         else if (fileContents[i].result == 0) {
           draws << target_fen << std::endl;
