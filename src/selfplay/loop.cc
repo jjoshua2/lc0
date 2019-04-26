@@ -381,7 +381,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
 void ProcessFiles(const std::vector<std::string>& files,
                   SyzygyTablebase* tablebase, std::string outputDir,
                   float distTemp, float distOffset, float dtzBoost, int offset,
-                  int mod, std::unordered_map <std::string, int8_t> fensMap) {
+                  int mod, std::unordered_map <std::string, int8_t>& fensMap) {
   std::cout << "Thread: " << offset << " starting" << std::endl;
   std::ofstream myfile;
   myfile.open(std::to_string(offset) + ".txt");
@@ -444,9 +444,9 @@ void RescoreLoop::RunLoop() {
     files[i] = inputDir + "/" + files[i];
   }
   
-  ifstream winsFile("wins.txt");
-  ifstream drawsFile("draws.txt");
-  ifstream lossesFile("losses.txt");
+  std::ifstream winsFile("wins.txt");
+  std::ifstream drawsFile("draws.txt");
+  std::ifstream lossesFile("losses.txt");
   std::string line;
   std::unordered_map <std::string, int8_t> fensMap;
   while(std::getline(winsFile, line))
@@ -478,7 +478,7 @@ void RescoreLoop::RunLoop() {
             options_.GetOptionsDict().Get<std::string>(kOutputDirId.GetId()),
             options_.GetOptionsDict().Get<float>(kTempId.GetId()),
             options_.GetOptionsDict().Get<float>(kDistributionOffsetId.GetId()),
-            dtz_boost, offset_val, threads, fensMap);
+            dtz_boost, offset_val, threads, &fensMap);
       });
     }
     for (int i = 0; i < threads_.size(); i++) {
@@ -491,7 +491,7 @@ void RescoreLoop::RunLoop() {
         options_.GetOptionsDict().Get<std::string>(kOutputDirId.GetId()),
         options_.GetOptionsDict().Get<float>(kTempId.GetId()),
         options_.GetOptionsDict().Get<float>(kDistributionOffsetId.GetId()),
-        dtz_boost, 0, 1, fensMap);
+        dtz_boost, 0, 1, &fensMap);
   }
   std::cout << "Games processed: " << games << std::endl;
   std::cout << "Positions processed: " << positions << std::endl;
