@@ -73,7 +73,7 @@ std::atomic<int> policy_bump_total_hist[11];
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
-                 float dtzBoost, std::ofstream& draws, std::ofstream& wins, std::ofstream& losses, std::unordered_map& <std::string, int8_t> fensMap) {
+                 float dtzBoost, std::ofstream& draws, std::ofstream& wins, std::ofstream& losses) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -389,7 +389,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
 void ProcessFiles(const std::vector<std::string>& files,
                   SyzygyTablebase* tablebase, std::string outputDir,
                   float distTemp, float distOffset, float dtzBoost, int offset,
-                  int mod, std::unordered_map <std::string, int8_t>& fensMap) {
+                  int mod) {
   std::cout << "Thread: " << offset << " starting" << std::endl;
   std::ofstream draws;
   std::ofstream wins;
@@ -399,7 +399,7 @@ void ProcessFiles(const std::vector<std::string>& files,
   losses.open(outputDir + "." + std::to_string(offset) + ".losses.txt");
   for (int i = offset; i < files.size(); i += mod) {
     try {
-      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins, losses, fensMap);      
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins, losses);      
     } catch (...) {
       std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
@@ -492,7 +492,7 @@ void RescoreLoop::RunLoop() {
             options_.GetOptionsDict().Get<std::string>(kOutputDirId.GetId()),
             options_.GetOptionsDict().Get<float>(kTempId.GetId()),
             options_.GetOptionsDict().Get<float>(kDistributionOffsetId.GetId()),
-            dtz_boost, offset_val, threads, &fensMap);
+            dtz_boost, offset_val, threads);
       });
     }
     for (int i = 0; i < threads_.size(); i++) {
@@ -505,7 +505,7 @@ void RescoreLoop::RunLoop() {
         options_.GetOptionsDict().Get<std::string>(kOutputDirId.GetId()),
         options_.GetOptionsDict().Get<float>(kTempId.GetId()),
         options_.GetOptionsDict().Get<float>(kDistributionOffsetId.GetId()),
-        dtz_boost, 0, 1, &fensMap);
+        dtz_boost, 0, 1);
   }
   std::cout << "Games processed: " << games << std::endl;
   std::cout << "Positions processed: " << positions << std::endl;
