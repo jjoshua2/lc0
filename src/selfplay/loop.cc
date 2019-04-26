@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 
 namespace lczero {
 
@@ -72,7 +73,7 @@ std::atomic<int> policy_bump_total_hist[11];
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
-                 float dtzBoost, std::ofstream& myfile) {
+                 float dtzBoost, std::ofstream& myfile, std::unordered_map <std::string, int8_t> fensMap) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -380,13 +381,13 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
 void ProcessFiles(const std::vector<std::string>& files,
                   SyzygyTablebase* tablebase, std::string outputDir,
                   float distTemp, float distOffset, float dtzBoost, int offset,
-                  int mod) {
+                  int mod, std::unordered_map <std::string, int8_t> fensMap) {
   std::cout << "Thread: " << offset << " starting" << std::endl;
   std::ofstream myfile;
   myfile.open(std::to_string(offset) + ".txt");
   for (int i = offset; i < files.size(); i += mod) {
     try {
-      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, myfile);      
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, myfile, fensMap);      
     } catch (...) {
       std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
@@ -442,6 +443,25 @@ void RescoreLoop::RunLoop() {
   for (int i = 0; i < files.size(); i++) {
     files[i] = inputDir + "/" + files[i];
   }
+  
+  ifstream winsFile("wins.txt");
+  ifstream drawsFile("draws.txt");
+  ifstream lossesFile("losses.txt");
+  std::string line;
+  std::unordered_map <std::string, int8_t> fensMap;
+  while(std::getline(winsFile, line))
+  {        
+      fensMap[line] = 1;
+  }
+  while(std::getline(drawsFile, line))
+  {        
+      fensMap[line] = 0;
+  }
+  while(std::getline(lossesFile, line))
+  {        
+      fensMap[line] = -1;
+  }  
+  
   float dtz_boost =
       options_.GetOptionsDict().Get<float>(kMinDTZBoostId.GetId());
   int threads = options_.GetOptionsDict().Get<int>(kThreadsId.GetId());
@@ -458,7 +478,7 @@ void RescoreLoop::RunLoop() {
             options_.GetOptionsDict().Get<std::string>(kOutputDirId.GetId()),
             options_.GetOptionsDict().Get<float>(kTempId.GetId()),
             options_.GetOptionsDict().Get<float>(kDistributionOffsetId.GetId()),
-            dtz_boost, offset_val, threads);
+            dtz_boost, offset_val, threads, fensMap);
       });
     }
     for (int i = 0; i < threads_.size(); i++) {
@@ -471,7 +491,7 @@ void RescoreLoop::RunLoop() {
         options_.GetOptionsDict().Get<std::string>(kOutputDirId.GetId()),
         options_.GetOptionsDict().Get<float>(kTempId.GetId()),
         options_.GetOptionsDict().Get<float>(kDistributionOffsetId.GetId()),
-        dtz_boost, 0, 1);
+        dtz_boost, 0, 1, fensMap);
   }
   std::cout << "Games processed: " << games << std::endl;
   std::cout << "Positions processed: " << positions << std::endl;
