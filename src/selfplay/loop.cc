@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 
 namespace lczero {
 
@@ -69,6 +70,7 @@ std::atomic<int> fixed_counts[3];
 std::atomic<int> policy_bump(0);
 std::atomic<int> policy_nobump_total_hist[11];
 std::atomic<int> policy_bump_total_hist[11];
+std::unordered_map <std::string, int8_t> fensMap;
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
@@ -117,7 +119,11 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       if ((board.ours() | board.theirs()).count() == 8) {
         Position pos = history.Last(); 
         std::string target_fen = pos.GetFen();
-        if (fileContents[i].result == 0) {
+        auto score = fensMap.find(target_fen);
+        if (score != fensMap.end()) {
+          fileContents[i].result = score->second;
+        }
+        else if (fileContents[i].result == 0) {
           draws << target_fen << std::endl;
         } else if (fileContents[i].result == 1) {
           wins << target_fen << std::endl;
@@ -456,6 +462,25 @@ void RescoreLoop::RunLoop() {
   for (int i = 0; i < files.size(); i++) {
     files[i] = inputDir + "/" + files[i];
   }
+  
+  std::ifstream winsFile("wins.txt");
+  std::ifstream drawsFile("draws.txt");
+  std::ifstream lossesFile("losses.txt");
+  std::string line;
+ 
+  while(std::getline(winsFile, line))
+  {        
+      fensMap[line] = 1;
+  }
+  while(std::getline(drawsFile, line))
+  {        
+      fensMap[line] = 0;
+  }
+  while(std::getline(lossesFile, line))
+  {        
+      fensMap[line] = -1;
+  }  
+  
   float dtz_boost =
       options_.GetOptionsDict().Get<float>(kMinDTZBoostId.GetId());
   int threads = options_.GetOptionsDict().Get<int>(kThreadsId.GetId());
