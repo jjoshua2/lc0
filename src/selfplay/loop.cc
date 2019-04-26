@@ -70,6 +70,7 @@ std::atomic<int> fixed_counts[3];
 std::atomic<int> policy_bump(0);
 std::atomic<int> policy_nobump_total_hist[11];
 std::atomic<int> policy_bump_total_hist[11];
+std::unordered_map <std::string, int8_t> fensMap;
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
@@ -462,7 +463,7 @@ void RescoreLoop::RunLoop() {
   std::ifstream drawsFile("draws.txt");
   std::ifstream lossesFile("losses.txt");
   std::string line;
-  std::unordered_map <std::string, int8_t> fensMap;
+ 
   while(std::getline(winsFile, line))
   {        
       fensMap[line] = 1;
