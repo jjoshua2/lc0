@@ -123,13 +123,21 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         if (score != fensMap.end()) {
           fileContents[i].result = score->second;
         }
-        else if (fileContents[i].result == 0) {
-          draws << target_fen << std::endl;
-        } else if (fileContents[i].result == 1) {
-          wins << target_fen << std::endl;
-        } else {
-          losses << target_fen << std::endl;
-        }
+		else {
+			bool black_to_move = false;  
+			if (fileContents[i].side_to_move == 1) { 
+				black_to_move = true; 
+			}
+			if (fileContents[i].result == 0) {
+				draws << target_fen << std::endl;
+			}
+			else if (fileContents[i].result == 1 && black_to_move == false) {
+				wins << target_fen << std::endl;
+			}
+			else {
+				losses << target_fen << std::endl;
+			}
+		}
       }
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
