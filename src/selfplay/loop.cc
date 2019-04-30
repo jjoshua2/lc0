@@ -121,7 +121,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         std::string target_fen = pos.GetFen();
         auto score = fensMap.find(target_fen);
         if (score != fensMap.end()) {
-          fileContents[i].result = score->second;
+          int8_t score_to_apply = score->second;
         }
         else if (fileContents[i].result == 0) {
           draws << target_fen << std::endl;
@@ -131,12 +131,17 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
           losses << target_fen << std::endl;
         }
       }
-      if (board.castlings().no_legal_castle() &&
+      if (
+         (board.ours() | board.theirs()).count() == 8 && score != fensMap.end() ) ||
+         (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
           (board.ours() | board.theirs()).count() <=
-              tablebase->max_cardinality()) {
+              tablebase->max_cardinality() )
+         ) {
         ProbeState state;
-        WDLScore wdl = tablebase->probe_wdl(history.Last(), &state);
+        if (board.ours() | board.theirs()).count() < 8) {
+          WDLScore wdl = tablebase->probe_wdl(history.Last(), &state);
+        
         // Only fail state means the WDL is wrong, probe_wdl may produce correct
         // result with a stat other than OK.
         if (state != FAIL) {
@@ -146,6 +151,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
           } else if (wdl == WDL_LOSS) {
             score_to_apply = -1;
           }
+        }
           for (int j = i + 1; j > last_rescore; j--) {
             if (fileContents[j].result != score_to_apply) {
               if (j == i + 1 && last_rescore == -1) {
