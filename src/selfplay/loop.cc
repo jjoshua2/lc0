@@ -131,10 +131,13 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
           losses << target_fen << std::endl;
         }
       }
-      if (board.ours() | board.theirs()).count() == 8 || (board.castlings().no_legal_castle() &&
+      if (
+         (board.ours() | board.theirs()).count() == 8 && score != fensMap.end() ) ||
+         (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
           (board.ours() | board.theirs()).count() <=
-              tablebase->max_cardinality())) {
+              tablebase->max_cardinality() )
+         ) {
         ProbeState state;
         if (board.ours() | board.theirs()).count() < 8) {
           WDLScore wdl = tablebase->probe_wdl(history.Last(), &state);
