@@ -62,7 +62,7 @@ void NetworkFactory::PopulateOptions(OptionsParser* options) {
   options->Add<StringOption>(NetworkFactory::kWeightsId) = kAutoDiscover;
   const auto backends = NetworkFactory::Get()->GetBackendsList();
   options->Add<ChoiceOption>(NetworkFactory::kBackendId, backends) =
-      backends.empty() ? "<none>" : backends[0];
+      backends.empty() ? "<none>" : backends[1];
   options->Add<StringOption>(NetworkFactory::kBackendOptionsId);
 }
 
