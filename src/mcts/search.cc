@@ -1334,6 +1334,7 @@ void SearchWorker::FetchSingleNodeResult(NodeToProcess* node_to_process,
     // We flip penalty sign for Leela's moves (odd depths)
     // (opponent depth is even depths and has opposite sign):    
       node_to_process->v = Q - penalty;
+    }
   } else {
     node_to_process->v = Q;
   }
