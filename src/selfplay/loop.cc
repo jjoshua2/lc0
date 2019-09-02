@@ -128,7 +128,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         }
       }
       
-      map<std::string, int>::iterator iter = known_positions.find(target_fen);
+      std::map<std::string, int>::iterator iter = known_positions.find(target_fen);
       
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
