@@ -414,17 +414,20 @@ void ProcessFiles(const std::vector<std::string>& files,
   std::ifstream in_win("wins.txt");
   while (std::getline(in_win, line))
   {
-    known_positions[line] = WDL_WIN;
+    WDLScore wdl = WDL_WIN;
+    known_positions[line] = wdl;
   }
   std::ifstream in_draws("draws.txt");
   while (std::getline(in_draws, line))
   {
-    known_positions[line] = WDL_DRAW;
+    WDLScore wdl = WDL_DRAW;
+    known_positions[line] = wdl;
   }
   std::ifstream in_losses("losses.txt");
   while (std::getline(in_losses, line))
   {
-    known_positions[line] = WDL_LOSS;
+    WDLScore wdl = WDL_LOSS;
+    known_positions[line] = wdl;
   }
   
   for (int i = offset; i < files.size(); i += mod) {
