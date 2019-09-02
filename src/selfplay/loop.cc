@@ -126,12 +126,24 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         } else {
           losses << target_fen << std::endl;
         }
-      } //known_positions
+      }
+      
+      map<std::string, int>::iterator iter = known_positions.find(target_fen);
+      
       if (board.castlings().no_legal_castle() &&
           history.Last().GetNoCaptureNoPawnPly() == 0 &&
-          (count <= tablebase->max_cardinality()) {
+          (count <= tablebase->max_cardinality()
+          || iter != known_positions.end()) {
+        
         ProbeState state;
-        WDLScore wdl = tablebase->probe_wdl(history.Last(), &state);
+        WDLScore wdl;
+        if (iter != known_positions.end()) {
+          wdl = iter->second;
+          state = OK;
+        }
+        else {
+          wdl = tablebase->probe_wdl(history.Last(), &state);
+        }
         // Only fail state means the WDL is wrong, probe_wdl may produce correct
         // result with a stat other than OK.
         if (state != FAIL) {
