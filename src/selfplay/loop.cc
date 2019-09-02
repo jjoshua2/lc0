@@ -277,6 +277,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       int move_index = 0;
       for (auto& chunk : fileContents) {
         const auto& board = history.Last().GetBoard();
+        const auto& count = (board.ours() | board.theirs()).count();
         std::vector<bool> boost_probs(1858, false);
         int boost_count = 0;
 
