@@ -399,18 +399,18 @@ void ProcessFiles(const std::vector<std::string>& files,
   
   std::map<std::string, int> known_positions;
   std::string line;
-  std::ifstream in("wins.txt");
-  while (std::getline(in, line))
+  std::ifstream in_win("wins.txt");
+  while (std::getline(in_win, line))
   {
     known_positions[line] = 1;
   }
-  in("draws.txt");
-  while (std::getline(in, line))
+  std::ifstream in_draws("draws.txt");
+  while (std::getline(in_draws, line))
   {
     known_positions[line] = 0;
   }
-  in("losses.txt");
-  while (std::getline(in, line))
+  std::ifstream in_losses("losses.txt");
+  while (std::getline(in_losses, line))
   {
     known_positions[line] = -1;
   }
