@@ -111,14 +111,15 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
       const auto& count = (board.ours() | board.theirs()).count();
+      Position pos = history.Last();
+      std::string target_fen = pos.GetFen();
+      
       if (count <= 5) {
         fileContents.resize(i);
         max_i = i;
         break;
       }
       if (count == 8) {
-        Position pos = history.Last(); 
-        std::string target_fen = pos.GetFen();
         if (fileContents[i].result == 0) {
           draws << target_fen << std::endl;
         } else if (fileContents[i].result == 1) {
