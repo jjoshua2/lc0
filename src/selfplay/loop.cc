@@ -188,9 +188,8 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     for (int i = 0; i < max_i; i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
-      if (board.castlings().no_legal_castle() &&
-          history.Last().GetNoCaptureNoPawnPly() != 0 &&
-          (count <= tablebase->max_cardinality()) {
+      if (board.castlings().no_legal_castle() && history.Last().GetNoCaptureNoPawnPly() != 0 &&
+          count <= tablebase->max_cardinality()) {
         ProbeState state;
         WDLScore wdl = tablebase->probe_wdl(history.Last(), &state);
         // Only fail state means the WDL is wrong, probe_wdl may produce correct
@@ -281,7 +280,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         int boost_count = 0;
 
         if (dtzBoost != 0.0f && board.castlings().no_legal_castle() &&
-            (count <= tablebase->max_cardinality()) {
+            count <= tablebase->max_cardinality()) {
           MoveList to_boost;
           tablebase->root_probe(history.Last(), true, true, &to_boost);
           for (auto& move : to_boost) {
