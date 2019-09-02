@@ -73,7 +73,7 @@ std::atomic<int> policy_bump_total_hist[11];
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
                  float dtzBoost, std::ofstream& draws, std::ofstream& wins, std::ofstream& losses,
-                 std::map<std::string, int> known_positions) {
+                 std::map<std::string, WDLScore> known_positions) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -129,7 +129,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
         }
       }
       
-      std::map<std::string, int>::iterator iter = known_positions.find(target_fen);
+      std::map<std::string, WDLScore>::iterator iter = known_positions.find(target_fen);
       
       if ((board.castlings().no_legal_castle() && history.Last().GetNoCaptureNoPawnPly() == 0 &&
           count <= tablebase->max_cardinality())
@@ -409,25 +409,22 @@ void ProcessFiles(const std::vector<std::string>& files,
   wins.open(outputDir + "." + std::to_string(offset) + ".wins.txt");
   losses.open(outputDir + "." + std::to_string(offset) + ".losses.txt");
   
-  std::map<std::string, int> known_positions;
+  std::map<std::string, WDLScore> known_positions;
   std::string line;
   std::ifstream in_win("wins.txt");
   while (std::getline(in_win, line))
   {
-    WDLScore wdl = WDL_WIN;
-    known_positions[line] = wdl;
+    known_positions[line] = WDL_WIN;
   }
   std::ifstream in_draws("draws.txt");
   while (std::getline(in_draws, line))
   {
-    WDLScore wdl = WDL_DRAW;
-    known_positions[line] = wdl;
+    known_positions[line] = WDL_DRAW;
   }
   std::ifstream in_losses("losses.txt");
   while (std::getline(in_losses, line))
   {
-    WDLScore wdl = WDL_LOSS;
-    known_positions[line] = wdl;
+    known_positions[line] = WDL_LOSS;
   }
   
   for (int i = offset; i < files.size(); i += mod) {
