@@ -396,6 +396,25 @@ void ProcessFiles(const std::vector<std::string>& files,
   draws.open(outputDir + "." + std::to_string(offset) + ".draws.txt");
   wins.open(outputDir + "." + std::to_string(offset) + ".wins.txt");
   losses.open(outputDir + "." + std::to_string(offset) + ".losses.txt");
+  
+  std::map<std::string, int> known_positions;
+  std::string line;
+  std::ifstream in("wins.txt");
+  while (std::getline(in, line))
+  {
+    known_positions[line] = 1;
+  }
+  in("draws.txt");
+  while (std::getline(in, line))
+  {
+    known_positions[line] = 0;
+  }
+  in("losses.txt");
+  while (std::getline(in, line))
+  {
+    known_positions[line] = -1;
+  }
+  
   for (int i = offset; i < files.size(); i += mod) {
     try {
       ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins, losses);      
