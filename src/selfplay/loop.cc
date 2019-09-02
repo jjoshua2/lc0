@@ -131,10 +131,10 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       
       std::map<std::string, int>::iterator iter = known_positions.find(target_fen);
       
-      if (board.castlings().no_legal_castle() &&
-          history.Last().GetNoCaptureNoPawnPly() == 0 &&
-          (count <= tablebase->max_cardinality()
-          || iter != known_positions.end()) {
+      if ((board.castlings().no_legal_castle() && history.Last().GetNoCaptureNoPawnPly() == 0 &&
+          count <= tablebase->max_cardinality())
+          || iter != known_positions.end()
+         ) {
         
         ProbeState state;
         WDLScore wdl;
