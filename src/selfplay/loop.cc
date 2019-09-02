@@ -72,7 +72,8 @@ std::atomic<int> policy_bump_total_hist[11];
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
-                 float dtzBoost, std::ofstream& draws, std::ofstream& wins, std::ofstream& losses) {
+                 float dtzBoost, std::ofstream& draws, std::ofstream& wins, std::ofstream& losses,
+                 std::map<std::string, int> known_positions) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -417,7 +418,7 @@ void ProcessFiles(const std::vector<std::string>& files,
   
   for (int i = offset; i < files.size(); i += mod) {
     try {
-      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins, losses);      
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins, losses, known_positions);      
     } catch (...) {
       std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
