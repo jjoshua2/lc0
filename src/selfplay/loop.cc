@@ -188,6 +188,7 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     for (int i = 0; i < max_i; i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
+      const auto& count = (board.ours() | board.theirs()).count();
       if (board.castlings().no_legal_castle() && history.Last().GetNoCaptureNoPawnPly() != 0 &&
           count <= tablebase->max_cardinality()) {
         ProbeState state;
