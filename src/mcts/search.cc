@@ -260,8 +260,7 @@ std::vector<std::string> Search::GetVerboseStats(Node* node,
         << ") ";
 
     oss << "(Q+U: " << std::setw(8) << std::setprecision(5)
-        << (params_.GetLogitQEnabled() ? FastLogit(edge.GetQ(0)) :
-            edge.GetQ(fpu)) + edge.GetU(U_coeff)
+        << FastLogit(edge.GetQ(0)) + edge.GetU(U_coeff)
         << ") ";
 
     oss << "(V: ";
