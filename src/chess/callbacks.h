@@ -69,8 +69,6 @@ struct ThinkingInfo {
   int hashfull = -1;
   // Win in centipawns.
   optional<int> score;
-  // Distance to mate.
-  optional<int> mate;
   // Number of successful TB probes (not the same as playouts ending in TB hit).
   int tb_hits = -1;
   // Best line found. Moves are from perspective of white player.
@@ -120,6 +118,8 @@ struct TournamentInfo {
   // e.g. results[2][1] is how many times player 1 lost as black.
   int results[3][2] = {{0, 0}, {0, 0}, {0, 0}};
   using Callback = std::function<void(const TournamentInfo&)>;
+  int move_count_ = 0;
+  uint64_t nodes_total_ = 0;
 };
 
 }  // namespace lczero

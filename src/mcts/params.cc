@@ -49,6 +49,10 @@ const OptionId SearchParams::kMaxPrefetchBatchId{
     "When the engine cannot gather a large enough batch for immediate use, try "
     "to prefetch up to X positions which are likely to be useful soon, and put "
     "them into cache."};
+const OptionId SearchParams::kLogitQId{
+    "logit-q", "LogitQ",
+    "Apply logit to Q when determining Q+U best child. This makes the U term "
+    "less dominant when Q is near -1 or +1."};
 const OptionId SearchParams::kCpuctId{
     "cpuct", "CPuct",
     "cpuct_init constant from \"UCT search\" algorithm. Higher values promote "
@@ -60,14 +64,6 @@ const OptionId SearchParams::kCpuctBaseId{
     "higher growth of Cpuct as number of node visits grows."};
 const OptionId SearchParams::kCpuctFactorId{
     "cpuct-factor", "CPuctFactor", "Multiplier for the cpuct growth formula."};
-const OptionId SearchParams::kTradePenaltyId{
-    "trade-penalty", "TradePenalty",
-    "Value is multiplied with number of pieces on the board and added to "
-    "current evaluation. Values -1.0 to 1.0"};
-const OptionId SearchParams::kTradePenalty2Id{
-    "trade-penalty2", "TradePenalty2",
-    "Fixed value offset, gets subtracted from current number of pieces. To use "
-    "in combination with \"trade-penalty\". Values from -1000.0 to 1000.0"};
 const OptionId SearchParams::kTemperatureId{
     "temperature", "Temperature",
     "Tau value from softmax formula for the first move. If equal to 0, the "
@@ -160,6 +156,13 @@ const OptionId SearchParams::kOutOfOrderEvalId{
     "in the cache or is terminal, evaluate it right away without sending the "
     "batch to the NN. When off, this may only happen with the very first node "
     "of a batch; when on, this can happen with any node."};
+const OptionId SearchParams::kStickyEndgamesId{
+    "sticky-endgames", "StickyEndgames",
+    "When an end of game position is found during search, allow the eval of "
+    "the previous move's position to stick to something more accurate. For "
+    "example, if at least one move results in checkmate, then the position "
+    "should stick as checkmated. Similarly, if all moves are drawn or "
+    "checkmated, the position should stick as drawn or checkmate."};
 const OptionId SearchParams::kSyzygyFastPlayId{
     "syzygy-fast-play", "SyzygyFastPlay",
     "With DTZ tablebase files, only allow the network pick from winning moves "
@@ -180,36 +183,28 @@ const OptionId SearchParams::kHistoryFillId{
     "synthesize them (always, never, or only at non-standard fen position)."};
 const OptionId SearchParams::kMinimumKLDGainPerNode{
     "minimum-kldgain-per-node", "MinimumKLDGainPerNode",
-    "If greater than 0 search will abort unless the last KLDGainAverageInterval "
-    "nodes have an average gain per node of at least this much."};
+    "If greater than 0 search will abort unless the last "
+    "KLDGainAverageInterval nodes have an average gain per node of at least "
+    "this much."};
 const OptionId SearchParams::kKLDGainAverageInterval{
     "kldgain-average-interval", "KLDGainAverageInterval",
     "Used to decide how frequently to evaluate the average KLDGainPerNode to "
     "check the MinimumKLDGainPerNode, if specified."};
-const OptionId SearchParams::kCertaintyPropagationId{
-    "certainty-propagation", "CertaintyPropagation", 
-    "Propagates certain scores more efficiently in the search tree, "
-    "proves and displays mates."};
-const OptionId SearchParams::kTwoFoldDrawScoringId{
-    "two-fold-draw-scoring", "TwoFoldDrawScoring",
-    "Scores two-folds as draws (0.00) in search to use visits more "
-    "efficiently. Recommended in conjunction with certainty propagation."};
 
 void SearchParams::Populate(OptionsParser* options) {
   // Here the uci optimized defaults" are set.
   // Many of them are overridden with training specific values in tournament.cc.
   options->Add<IntOption>(kMiniBatchSizeId, 1, 1024) = 256;
   options->Add<IntOption>(kMaxPrefetchBatchId, 0, 1024) = 32;
-  options->Add<FloatOption>(kCpuctId, 0.0f, 100.0f) = 3.2f;
-  options->Add<FloatOption>(kCpuctBaseId, 1.0f, 1000000000.0f) = 8000.0f;
-  options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 2.5f;
-  options->Add<FloatOption>(kTradePenaltyId, -1.0f, 1.0f) = 0.0025f;
-  options->Add<FloatOption>(kTradePenalty2Id, -1000.0f, 1000.0f) = 27.0f;
-  options->Add<FloatOption>(kTemperatureId, 0.0f, 100.0f) = 2.0f;
+  options->Add<BoolOption>(kLogitQId) = true;
+  options->Add<FloatOption>(kCpuctId, 0.0f, 100.0f) = 3.0f;
+  options->Add<FloatOption>(kCpuctBaseId, 1.0f, 1000000000.0f) = 19652.0f;
+  options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 2.0f;
+  options->Add<FloatOption>(kTemperatureId, 0.0f, 100.0f) = 0.0f;
   options->Add<IntOption>(kTempDecayMovesId, 0, 100) = 0;
-  options->Add<IntOption>(kTemperatureCutoffMoveId, 0, 1000) = 2;
+  options->Add<IntOption>(kTemperatureCutoffMoveId, 0, 1000) = 0;
   options->Add<FloatOption>(kTemperatureEndgameId, 0.0f, 100.0f) = 0.0f;
-  options->Add<FloatOption>(kTemperatureWinpctCutoffId, 0.0f, 100.0f) = 0.42f;
+  options->Add<FloatOption>(kTemperatureWinpctCutoffId, 0.0f, 100.0f) = 100.0f;
   options->Add<FloatOption>(kTemperatureVisitOffsetId, -1000.0f, 1000.0f) =
       0.0f;
   options->Add<BoolOption>(kNoiseId) = false;
@@ -220,34 +215,33 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<ChoiceOption>(kFpuStrategyId, fpu_strategy) = "reduction";
   options->Add<FloatOption>(kFpuValueId, -100.0f, 100.0f) = 1.2f;
   fpu_strategy.push_back("same");
-  options->Add<ChoiceOption>(kFpuStrategyAtRootId, fpu_strategy) = "absolute";
+  options->Add<ChoiceOption>(kFpuStrategyAtRootId, fpu_strategy) = "same";
   options->Add<FloatOption>(kFpuValueAtRootId, -100.0f, 100.0f) = 1.0f;
   options->Add<IntOption>(kCacheHistoryLengthId, 0, 7) = 0;
   options->Add<FloatOption>(kPolicySoftmaxTempId, 0.1f, 10.0f) = 2.2f;
   options->Add<IntOption>(kMaxCollisionEventsId, 1, 1024) = 32;
   options->Add<IntOption>(kMaxCollisionVisitsId, 1, 1000000) = 9999;
   options->Add<BoolOption>(kOutOfOrderEvalId) = true;
+  options->Add<BoolOption>(kStickyEndgamesId) = true;
   options->Add<BoolOption>(kSyzygyFastPlayId) = true;
   options->Add<IntOption>(kMultiPvId, 1, 500) = 1;
-  std::vector<std::string> score_type = {"centipawn", "win_percentage", "Q"};
+  std::vector<std::string> score_type = {"centipawn", "centipawn_2018",
+                                         "win_percentage", "Q"};
   options->Add<ChoiceOption>(kScoreTypeId, score_type) = "centipawn";
   std::vector<std::string> history_fill_opt{"no", "fen_only", "always"};
   options->Add<ChoiceOption>(kHistoryFillId, history_fill_opt) = "fen_only";
   options->Add<IntOption>(kKLDGainAverageInterval, 1, 10000000) = 100;
   options->Add<FloatOption>(kMinimumKLDGainPerNode, 0.0f, 1.0f) = 0.0f;
-  options->Add<BoolOption>(kCertaintyPropagationId) = true;
-  options->Add<BoolOption>(kTwoFoldDrawScoringId) = true;
 
   options->HideOption(kLogLiveStatsId);
 }
 
 SearchParams::SearchParams(const OptionsDict& options)
     : options_(options),
+      kLogitQ(options.Get<bool>(kLogitQId.GetId())),
       kCpuct(options.Get<float>(kCpuctId.GetId())),
       kCpuctBase(options.Get<float>(kCpuctBaseId.GetId())),
       kCpuctFactor(options.Get<float>(kCpuctFactorId.GetId())),
-      kTradePenalty(options.Get<float>(kTradePenaltyId.GetId())),
-      kTradePenalty2(options.Get<float>(kTradePenalty2Id.GetId())),
       kNoise(options.Get<bool>(kNoiseId.GetId())),
       kSmartPruningFactor(options.Get<float>(kSmartPruningFactorId.GetId())),
       kFpuAbsolute(options.Get<std::string>(kFpuStrategyId.GetId()) ==
@@ -266,12 +260,10 @@ SearchParams::SearchParams(const OptionsDict& options)
       kMaxCollisionEvents(options.Get<int>(kMaxCollisionEventsId.GetId())),
       kMaxCollisionVisits(options.Get<int>(kMaxCollisionVisitsId.GetId())),
       kOutOfOrderEval(options.Get<bool>(kOutOfOrderEvalId.GetId())),
-      kCertaintyPropagation(options.Get<bool>(kCertaintyPropagationId.GetId())),
-      kTwoFoldDrawScoring(options.Get<bool>(kTwoFoldDrawScoringId.GetId())),
+      kStickyEndgames(options.Get<bool>(kStickyEndgamesId.GetId())),
       kSyzygyFastPlay(options.Get<bool>(kSyzygyFastPlayId.GetId())),
       kHistoryFill(
           EncodeHistoryFill(options.Get<std::string>(kHistoryFillId.GetId()))),
-      kMiniBatchSize(options.Get<int>(kMiniBatchSizeId.GetId())) {
-}
+      kMiniBatchSize(options.Get<int>(kMiniBatchSizeId.GetId())) {}
 
 }  // namespace lczero
