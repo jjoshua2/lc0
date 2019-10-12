@@ -72,7 +72,8 @@ std::atomic<int> policy_bump_total_hist[11];
 
 void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
                  std::string outputDir, float distTemp, float distOffset,
-                 float dtzBoost, std::ofstream& draws, std::ofstream& wins, std::ofstream& losses) {
+                 float dtzBoost, std::ofstream& draws, std::ofstream& wins, std::ofstream& losses,
+                 std::unordered_map<std::string, WDLScore> known_positions) {
   // Scope to ensure reader and writer are closed before deleting source file.
   {
     TrainingDataReader reader(file);
@@ -109,14 +110,16 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     for (int i = 0; i < moves.size(); i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
-      if ((board.ours() | board.theirs()).count() <= 5) {
+      const auto& count = (board.ours() | board.theirs()).count();
+      Position pos = history.Last();
+      std::string target_fen = pos.GetFen();
+      
+      if (count <= 5) {
         fileContents.resize(i);
         max_i = i;
         break;
       }
-      if ((board.ours() | board.theirs()).count() == 8) {
-        Position pos = history.Last(); 
-        std::string target_fen = pos.GetFen();
+      if (count == 8) {
         if (fileContents[i].result == 0) {
           draws << target_fen << std::endl;
         } else if (fileContents[i].result == 1) {
@@ -125,12 +128,23 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
           losses << target_fen << std::endl;
         }
       }
-      if (board.castlings().no_legal_castle() &&
-          history.Last().GetNoCaptureNoPawnPly() == 0 &&
-          (board.ours() | board.theirs()).count() <=
-              tablebase->max_cardinality()) {
+      
+      std::unordered_map<std::string, WDLScore>::iterator iter = known_positions.find(target_fen);
+      
+      if ((board.castlings().no_legal_castle() && history.Last().GetNoCaptureNoPawnPly() == 0 &&
+          count <= tablebase->max_cardinality())
+          || iter != known_positions.end()
+         ) {
+        
         ProbeState state;
-        WDLScore wdl = tablebase->probe_wdl(history.Last(), &state);
+        WDLScore wdl;
+        if (iter != known_positions.end()) {
+          wdl = iter->second;
+          state = OK;
+        }
+        else {
+          wdl = tablebase->probe_wdl(history.Last(), &state);
+        }
         // Only fail state means the WDL is wrong, probe_wdl may produce correct
         // result with a stat other than OK.
         if (state != FAIL) {
@@ -174,10 +188,9 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
     for (int i = 0; i < max_i; i++) {
       history.Append(moves[i]);
       const auto& board = history.Last().GetBoard();
-      if (board.castlings().no_legal_castle() &&
-          history.Last().GetNoCaptureNoPawnPly() != 0 &&
-          (board.ours() | board.theirs()).count() <=
-              tablebase->max_cardinality()) {
+      const auto& count = (board.ours() | board.theirs()).count();
+      if (board.castlings().no_legal_castle() && history.Last().GetNoCaptureNoPawnPly() != 0 &&
+          count <= tablebase->max_cardinality()) {
         ProbeState state;
         WDLScore wdl = tablebase->probe_wdl(history.Last(), &state);
         // Only fail state means the WDL is wrong, probe_wdl may produce correct
@@ -264,12 +277,12 @@ void ProcessFile(const std::string& file, SyzygyTablebase* tablebase,
       int move_index = 0;
       for (auto& chunk : fileContents) {
         const auto& board = history.Last().GetBoard();
+        const auto& count = (board.ours() | board.theirs()).count();
         std::vector<bool> boost_probs(1858, false);
         int boost_count = 0;
 
         if (dtzBoost != 0.0f && board.castlings().no_legal_castle() &&
-            (board.ours() | board.theirs()).count() <=
-                tablebase->max_cardinality()) {
+            count <= tablebase->max_cardinality()) {
           MoveList to_boost;
           tablebase->root_probe(history.Last(), true, true, &to_boost);
           for (auto& move : to_boost) {
@@ -396,9 +409,28 @@ void ProcessFiles(const std::vector<std::string>& files,
   draws.open(outputDir + "." + std::to_string(offset) + ".draws.txt");
   wins.open(outputDir + "." + std::to_string(offset) + ".wins.txt");
   losses.open(outputDir + "." + std::to_string(offset) + ".losses.txt");
+  
+  std::unordered_map<std::string, WDLScore> known_positions;
+  std::string line;
+  std::ifstream in_win("wins.txt");
+  while (std::getline(in_win, line))
+  {
+    known_positions[line] = WDL_WIN;
+  }
+  std::ifstream in_draws("draws.txt");
+  while (std::getline(in_draws, line))
+  {
+    known_positions[line] = WDL_DRAW;
+  }
+  std::ifstream in_losses("losses.txt");
+  while (std::getline(in_losses, line))
+  {
+    known_positions[line] = WDL_LOSS;
+  }
+  
   for (int i = offset; i < files.size(); i += mod) {
     try {
-      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins, losses);      
+      ProcessFile(files[i], tablebase, outputDir, distTemp, distOffset, dtzBoost, draws, wins, losses, known_positions);      
     } catch (...) {
       std::cerr << "Caught error on: " << files[i] << std::endl;
       int error = rename( files[i].c_str(), std::string(std::string("G:\\old-lczero-training\\convert\\toConvert\\errors\\") + files[i]).c_str() );
