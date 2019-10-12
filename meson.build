@@ -160,7 +160,6 @@ if get_option('build_backends')
       tensorflow_include[0] + '/bazel-genfiles',
       tensorflow_include[0] + '/tensorflow/contrib/makefile/downloads',
       tensorflow_include[0] + '/tensorflow/contrib/makefile/downloads/absl',
-      tensorflow_include[0] + '/tensorflow/contrib/makefile/downloads/eigen',
       tensorflow_include[0] + '/tensorflow/contrib/makefile/downloads/gemmlowp',
       tensorflow_include[0] + '/tensorflow/contrib/makefile/downloads/nsync/public',
       tensorflow_include[0] + '/tensorflow/contrib/makefile/gen/protobuf-host/include',
@@ -195,13 +194,12 @@ if get_option('build_backends')
   endif
 
   if get_option('blas')
-    if get_option('mkl') and mkl_lib.found()
       add_project_arguments('-DUSE_MKL', language : 'cpp')
       includes += include_directories(get_option('mkl_include'))
       deps += [ mkl_lib ]
       has_blas = true
 
-    elif get_option('accelerate') and accelerate_lib.found()
+    if get_option('accelerate') and accelerate_lib.found()
       includes += include_directories('/System/Library/Frameworks/Accelerate.framework/Frameworks/vecLib.framework/Headers')
       deps += [ accelerate_lib ]
       has_blas = true
@@ -373,7 +371,12 @@ if get_option('build_backends')
     cuda_arguments = ['@EXTRA_ARGS@', '-c', '@INPUT@', '-o', '@OUTPUT@',
                       '-I', meson.current_source_dir() + '/src']
     if host_machine.system() == 'windows'
-      cuda_arguments += ['-Xcompiler', '-MD']
+      # meson bug fixed in v0.51
+      if meson.version().version_compare('<0.51') or get_option('default_library') != 'static'
+        cuda_arguments += ['-Xcompiler', '-MD']
+      else
+        cuda_arguments += ['-Xcompiler', '-MT']
+      endif
     else
       cuda_arguments += ['--std=c++14', '-Xcompiler', '-fPIC']
     endif
@@ -437,14 +440,14 @@ if not get_option('pext')
   add_project_arguments('-DNO_PEXT', language : 'cpp')
 endif
 
-executable('rescorer', 'src/main.cc',
+executable('lc0', 'src/main.cc',
   files, include_directories: includes, dependencies: deps, install: true)
 
 
 ### Tests
-gtest = dependency('gtest', fallback: ['gtest', 'gtest_dep'], required: false)
 
-if get_option('gtest') and gtest.found()
+if get_option('gtest')
+  gtest = dependency('gtest', fallback: ['gtest', 'gtest_dep'])
   lc0_lib = library('lc0_lib', files, include_directories: includes, dependencies: deps)
 
   test('ChessBoard',
