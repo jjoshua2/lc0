@@ -132,7 +132,10 @@ void Search::SendUciInfo() REQUIRES(nodes_mutex_) {
     } else if (score_type == "Q") {
       uci_info.score = score * 10000;
     }
-    if (params_.GetMultiPv() > 1) uci_info.multipv = multipv;
+    if (params_.GetMultiPv() > 1) {
+      uci_info.multipv = multipv;
+      uci_info.nodes = edge.GetN();
+    }
     bool flip = played_history_.IsBlackToMove();
     for (auto iter = edge; iter;
          iter = GetBestChildNoTemperature(iter.node()), flip = !flip) {
