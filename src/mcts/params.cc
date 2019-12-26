@@ -201,9 +201,9 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<IntOption>(kMiniBatchSizeId, 1, 1024) = 256;
   options->Add<IntOption>(kMaxPrefetchBatchId, 0, 1024) = 32;
   options->Add<FloatOption>(kCpuctId, 0.0f, 100.0f) = 3.2f;
-  options->Add<FloatOption>(kCpuctBaseId, 1.0f, 1000000000.0f) = 8000.0f;
+  options->Add<FloatOption>(kCpuctBaseId, 1.0f, 1000000000.0f) = 2500.0f;
   options->Add<FloatOption>(kCpuctFactorId, 0.0f, 1000.0f) = 2.5f;
-  options->Add<FloatOption>(kTradePenaltyId, -1.0f, 1.0f) = 0.0025f;
+  options->Add<FloatOption>(kTradePenaltyId, -1.0f, 1.0f) = 0.0015f;
   options->Add<FloatOption>(kTradePenalty2Id, -1000.0f, 1000.0f) = 27.0f;
   options->Add<FloatOption>(kTemperatureId, 0.0f, 100.0f) = 2.0f;
   options->Add<IntOption>(kTempDecayMovesId, 0, 100) = 0;
@@ -218,12 +218,12 @@ void SearchParams::Populate(OptionsParser* options) {
   options->Add<FloatOption>(kSmartPruningFactorId, 0.0f, 10.0f) = 1.33f;
   std::vector<std::string> fpu_strategy = {"reduction", "absolute"};
   options->Add<ChoiceOption>(kFpuStrategyId, fpu_strategy) = "reduction";
-  options->Add<FloatOption>(kFpuValueId, -100.0f, 100.0f) = 1.2f;
+  options->Add<FloatOption>(kFpuValueId, -100.0f, 100.0f) = 1.1f;
   fpu_strategy.push_back("same");
   options->Add<ChoiceOption>(kFpuStrategyAtRootId, fpu_strategy) = "absolute";
   options->Add<FloatOption>(kFpuValueAtRootId, -100.0f, 100.0f) = 1.0f;
   options->Add<IntOption>(kCacheHistoryLengthId, 0, 7) = 0;
-  options->Add<FloatOption>(kPolicySoftmaxTempId, 0.1f, 10.0f) = 2.2f;
+  options->Add<FloatOption>(kPolicySoftmaxTempId, 0.1f, 10.0f) = 2.3f;
   options->Add<IntOption>(kMaxCollisionEventsId, 1, 1024) = 32;
   options->Add<IntOption>(kMaxCollisionVisitsId, 1, 1000000) = 9999;
   options->Add<BoolOption>(kOutOfOrderEvalId) = true;
