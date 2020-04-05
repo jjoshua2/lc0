@@ -101,7 +101,8 @@ class SearchParams {
   float GetMinimumKLDGainPerNode() const {
     return options_.Get<float>(kMinimumKLDGainPerNode.GetId());
   }
-
+  int GetMaxOutOfOrderEvals() const { return kMaxOutOfOrderEvals; }
+  
   // Search parameter IDs.
   static const OptionId kMiniBatchSizeId;
   static const OptionId kMaxPrefetchBatchId;
@@ -137,6 +138,7 @@ class SearchParams {
   static const OptionId kTwoFoldDrawScoringId;
   static const OptionId kMinimumKLDGainPerNode;
   static const OptionId kKLDGainAverageInterval;
+  static const OptionId kMaxOutOfOrderEvalsId;
 
  private:
   const OptionsDict& options_;
@@ -167,6 +169,7 @@ class SearchParams {
   const bool kSyzygyFastPlay;
   const FillEmptyHistory kHistoryFill;
   const int kMiniBatchSize;
+  const int kMaxOutOfOrderEvals;
 };
 
 }  // namespace lczero
