@@ -162,7 +162,7 @@ const OptionId SearchParams::kOutOfOrderEvalId{
     "of a batch; when on, this can happen with any node."};
 const OptionId SearchParams::kMaxOutOfOrderEvalsId{
     "max-out-of-order-evals", "MaxOutOfOrderEvals",
-    "Maximum number of out of order evals during gathering of a batch."}
+    "Maximum number of out of order evals during gathering of a batch."};
 const OptionId SearchParams::kSyzygyFastPlayId{
     "syzygy-fast-play", "SyzygyFastPlay",
     "With DTZ tablebase files, only allow the network pick from winning moves "
