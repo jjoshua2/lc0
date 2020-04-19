@@ -313,6 +313,13 @@ class SearchWorker {
   int number_out_of_order_ = 0;
   const SearchParams& params_;
   std::unique_ptr<Node> precached_node_;
+  
+  // Intermediate array to store values when processing policy temperature decay.
+  // According to a lichess developer post:
+  // https://lichess.org/blog/Wqa7GiAAAOIpBLoY/
+  //     developer-update-275-improved-game-compression
+  // there are never more than 256 valid legal moves in any legal position.
+  float intermediate_[256];
 };
 
 }  // namespace lczero
