@@ -421,6 +421,8 @@ class Node {
   float visited_policy_ = 0.0f;
   // How many completed visits this node had.
   uint32_t n_ = 0;
+  // What the number of visits was at the last time we applied dynamic policy temp.
+  uint32_t n_last_temp_ = 0;
   // (AKA virtual loss.) How many threads currently process this node (started
   // but not finished). This value is added to n during selection which node
   // to pick in MCTS, and also when selecting the best move.
@@ -451,9 +453,9 @@ class Node {
 
 // A basic sanity check. This must be adjusted when Node members are adjusted.
 #if defined(__i386__) || (defined(__arm__) && !defined(__aarch64__))
-static_assert(sizeof(Node) == 52, "Unexpected size of Node for 32bit compile");
+static_assert(sizeof(Node) == 56, "Unexpected size of Node for 32bit compile");
 #else
-static_assert(sizeof(Node) == 80, "Unexpected size of Node");
+static_assert(sizeof(Node) == 88, "Unexpected size of Node");
 #endif
 
 // Contains Edge and Node pair and set of proxy functions to simplify access
@@ -495,6 +497,8 @@ class EdgeAndNode {
 
   // Edge related getters.
   float GetP() const { return edge_->GetP(); }
+  void SetP(float val) { edge_->SetP(val); }
+
   Move GetMove(bool flip = false) const {
     return edge_ ? edge_->GetMove(flip) : Move();
   }
