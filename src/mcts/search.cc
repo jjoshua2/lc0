@@ -1449,7 +1449,9 @@ void SearchWorker::DoBackupUpdateSingleNode(
       if (n->GetOwnEdge()->IsLBounded() && v < 0.0f) v = 0.00f;
     }
 
-    n->FinalizeScoreUpdate(v, d, node_to_process.multivisit);
+    n->FinalizeScoreUpdate(v, d, node_to_process.multivisit, 
+                           params_.GetPolicySoftmaxTemp(), 
+                           params_.GetPolicyTempDecay(), intermediate_);
 
     // Certainty propagation: adjust Qs along the path as if all visits already
     // had propagated the certain result.
