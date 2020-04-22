@@ -26,6 +26,7 @@
 */
 
 #include "mcts/node.h"
+#include "utils/fastmath.h"
 
 #include <algorithm>
 #include <bitset>
