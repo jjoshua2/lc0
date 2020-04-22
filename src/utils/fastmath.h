@@ -64,5 +64,8 @@ inline float FastPow2(const float a) {
 inline float FastLog(const float a) {
   return 0.6931471805599453f * FastLog2(a);
 }
-
+  
+// Fast approximate pow(a, b).
+inline float FastPow(const float a, const float b) { return FastPow2(b * FastLog2(a)); }
+  
 }  // namespace lczero
