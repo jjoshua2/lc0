@@ -331,7 +331,7 @@ void Node::FinalizeScoreUpdate(float v, float d, int multivisit,
   float exponent = old_policy_temp / (policy_temperature - 
       policy_temp_decay * FastLog2(1 + n_));
 
-  if (abs(exponent - 1.0f) > 0.001f) {
+  if (abs(exponent - 1.0f) > 0.005f) {
     float total = 0.0f;
     int counter = 0;
     for (auto& child : Edges()) {
