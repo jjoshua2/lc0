@@ -263,7 +263,8 @@ std::vector<std::string> Search::GetVerboseStats(Node* node,
         << ") ";
 
     oss << "(Q+U: " << std::setw(8) << std::setprecision(5)
-        << edge.GetQ(fpu) + edge.GetU(U_coeff) << ") ";
+        << FastLogit(edge.GetQ(0)) + edge.GetU(U_coeff)
+        << ") ";
 
     oss << "(V: ";
     optional<float> v;
@@ -1032,7 +1033,8 @@ SearchWorker::NodeToProcess SearchWorker::PickNodeToExtend(
         }
       }
 
-      const float score = child.GetU(puct_mult) + Q;
+      const float Q0 = child.GetQ(0); 
+      const float score = child.GetU(puct_mult) + (Q - Q0) + FastLogit(0.99999999 * Q0);
       if (score > best) {
         second_best = best;
         second_best_edge = best_edge;

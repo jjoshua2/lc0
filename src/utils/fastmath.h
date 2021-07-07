@@ -65,4 +65,9 @@ inline float FastLog(const float a) {
   return 0.6931471805599453f * FastLog2(a);
 }
 
+// Fast logit for more readable code.
+inline float FastLogit(const float a) {
+  return 0.5 * FastLog((1.0f + a) / (1.0f - a));
+}
+
 }  // namespace lczero
