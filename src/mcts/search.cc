@@ -205,11 +205,13 @@ int64_t Search::GetTimeToDeadline() const {
 }
 
 namespace {
-inline float GetFpu(const SearchParams& params, Node* node, bool is_root_node) {
+inline float GetFpu(const SearchParams& params, Node* node,
+                    bool is_root_node, bool logit_q = false) {
   const auto value = params.GetFpuValue(is_root_node);
+  const auto Q = logit_q ? FastLogit(node->GetQ()) : node->GetQ();
   return params.GetFpuAbsolute(is_root_node)
              ? value
-             : -node->GetQ() - value * std::sqrt(node->GetVisitedPolicy());
+             : -Q - value * std::sqrt(node->GetVisitedPolicy());
 }
 
 inline float ComputeCpuct(const SearchParams& params, uint32_t N) {
@@ -233,8 +235,8 @@ std::vector<std::string> Search::GetVerboseStats(Node* node,
   std::sort(
       edges.begin(), edges.end(),
       [&fpu, &U_coeff](EdgeAndNode a, EdgeAndNode b) {
-        return std::forward_as_tuple(a.GetN(), a.GetQ(fpu) + a.GetU(U_coeff)) <
-               std::forward_as_tuple(b.GetN(), b.GetQ(fpu) + b.GetU(U_coeff));
+        return std::forward_as_tuple(a.GetN(), a.GetQ(fpu, true) + a.GetU(U_coeff)) <
+               std::forward_as_tuple(b.GetN(), b.GetQ(fpu, true) + b.GetU(U_coeff));
       });
 
   std::vector<std::string> infos;
@@ -263,7 +265,7 @@ std::vector<std::string> Search::GetVerboseStats(Node* node,
         << ") ";
 
     oss << "(Q+U: " << std::setw(8) << std::setprecision(5)
-        << edge.GetQ(fpu) + edge.GetU(U_coeff) << ") ";
+        << edge.GetQ(fpu, true) + edge.GetU(U_coeff) << ") ";
 
     oss << "(V: ";
     optional<float> v;
@@ -984,7 +986,7 @@ SearchWorker::NodeToProcess SearchWorker::PickNodeToExtend(
     float best = std::numeric_limits<float>::lowest();
     float second_best = std::numeric_limits<float>::lowest();
     int possible_moves = 0;
-    const float fpu = GetFpu(params_, node, is_root_node);
+    const float fpu = GetFpu(params_, node, is_root_node, true);
     bool parent_upperbounded = node->IsOnlyUBounded();
     for (auto child : node->Edges()) {
       if (is_root_node) {
@@ -1018,7 +1020,7 @@ SearchWorker::NodeToProcess SearchWorker::PickNodeToExtend(
         }
         ++possible_moves;
       }
-      float Q = child.GetQ(fpu);
+      float Q = child.GetQ(fpu, true);
 
       // Certainty Propagation. Avoid suboptimal childs.
       if (params_.GetCertaintyPropagation()) {
@@ -1246,11 +1248,11 @@ int SearchWorker::PrefetchIntoCache(Node* node, int budget) {
   const float cpuct = ComputeCpuct(params_, node->GetN());
   const float puct_mult =
       cpuct * std::sqrt(std::max(node->GetChildrenVisits(), 1u));
-  const float fpu = GetFpu(params_, node, node == search_->root_node_);
+  const float fpu = GetFpu(params_, node, node == search_->root_node_, true);
   for (auto edge : node->Edges()) {
     if (edge.GetP() == 0.0f) continue;
     // Flip the sign of a score to be able to easily sort.
-    scores.emplace_back(-edge.GetU(puct_mult) - edge.GetQ(fpu), edge);
+    scores.emplace_back(-edge.GetU(puct_mult) - edge.GetQ(fpu, true), edge);
   }
 
   size_t first_unsorted_index = 0;
@@ -1280,7 +1282,7 @@ int SearchWorker::PrefetchIntoCache(Node* node, int budget) {
     if (i != scores.size() - 1) {
       // Sign of the score was flipped for sorting, so flip it back.
       const float next_score = -scores[i + 1].first;
-      const float q = edge.GetQ(-fpu);
+      const float q = edge.GetQ(-fpu, true);
       if (next_score > q) {
         budget_to_spend =
             std::min(budget, int(edge.GetP() * puct_mult / (next_score - q) -
