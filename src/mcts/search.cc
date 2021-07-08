@@ -1329,20 +1329,15 @@ void SearchWorker::FetchSingleNodeResult(NodeToProcess* node_to_process,
   node_to_process->d = computation_->GetDVal(idx_in_computation);
   // Dynamic Trade Penalty
   auto Q = -computation_->GetQVal(idx_in_computation);
-  if (Q > -0.25 && node_to_process->depth % 2 == 0) {
+  if (history_.Last().GetGamePly() <= 50) {
     auto penalty = params_.GetTradePenalty() * (node_to_process->piececount - params_.GetTradePenalty2());
-    if (Q < 0) {
-      penalty *= (Q*4)+1;
-    }
-    node_to_process->v = Q + penalty;
-  } else if (Q < 0.25 && node_to_process->depth % 2 == 1) {
+    if (node_to_process->depth % 2 == 0) {
+      node_to_process->v = Q + penalty;
+    } else { //(node_to_process->depth % 2 == 1)
     // We flip penalty sign for Leela's moves (odd depths)
-    // (opponent depth is even depths and has opposite sign):
-    auto penalty = params_.GetTradePenalty() * (node_to_process->piececount - params_.GetTradePenalty2());    
-    if (Q > 0) {
-      penalty *= 1-(Q*4);
+    // (opponent depth is even depths and has opposite sign):    
+      node_to_process->v = Q - penalty;
     }
-    node_to_process->v = Q - penalty;
   } else {
     node_to_process->v = Q;
   }
